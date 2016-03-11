@@ -92,6 +92,8 @@ public:
         Read<ElemType>(fileName);
         // perform all further post-processing, caching, etc.
         CompileNetwork();
+        // To ensure that all the BN nodes changed to eval mode unless it's in Training mode.
+        SetBatchNormalizationNodesBelowEvalMode(true);
     }
 
     // static helper to instantiate a network from a file
@@ -327,8 +329,8 @@ public:
     void ReplaceFinalCriterionNode(wstring oldNodeName, ComputationNodeBasePtr newNode);
     void AddFeatureNode(ComputationNodeBasePtr featureNode);
     void RemoveFeatureNode(ComputationNodeBasePtr featureNode);
-    void SetLearnableNodesBelowNeedGradient(const bool needGradient, const ComputationNodeBasePtr& rootNode = nullptr);
-    void SetBatchNormlizationNodesBelowEvalMode(const bool evalMode, const ComputationNodeBasePtr& rootNode = nullptr);
+    void SetLearnableNodesBelowLearningRateMultiplier(const float learningRateMultiplier, const ComputationNodeBasePtr& rootNode = nullptr);
+    void SetBatchNormalizationNodesBelowEvalMode(const bool evalMode, const ComputationNodeBasePtr& rootNode = nullptr);
 
     // -----------------------------------------------------------------------
     // node access
@@ -385,6 +387,9 @@ public:
 
     template <class ElemType>
     static void SetDropoutRate(ComputationNetworkPtr net, const ComputationNodeBasePtr& criterionNode, const double dropoutRate, double& prevDropoutRate, unsigned long& dropOutSeed);
+
+    template <class ElemType>
+    static void SetBatchNormalizationTimeConstant(ComputationNetworkPtr net, const ComputationNodeBasePtr& criterionNode, const double normalizationTimeConstant, double& prevNormalizationTimeConstant);
 
     template <class ElemType>
     static void SetSeqParam(ComputationNetworkPtr net,

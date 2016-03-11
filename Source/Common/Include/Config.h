@@ -827,6 +827,7 @@ public:
         }
 
         // get the key
+        // As a special case, we will get an empty key when parsing a macro definition.
         auto key = stringParse.substr(tokenStart, keyEnd - tokenStart);
         Trim(key);
         tokenStart = keyEnd;
@@ -854,22 +855,25 @@ public:
                 tokenStart++;
                 substrSize -= 2; // take out the quotes
             }
+            //else if (substrSize == 0)
+            //{
+            //    InvalidArgument("ParseValue: No value given for '%s'.", key.c_str());
+            //    //return npos;
+            //}
+            // Not a quoted string: It's an empty section. Nothing wrong with that, is it?
         }
-
-        if (substrSize == 0)
+        else if (substrSize == 0)
         {
-            return npos;
+            InvalidArgument("ParseValue: No value given for '%s'.", key.c_str());
         }
 
         // get the value
         value = stringParse.substr(tokenStart, substrSize);
         Trim(value);
 
-        // add the value to the dictionary if both values are valid
-        if (!key.empty() && !value.empty())
-        {
+        // add the value to the dictionary
+        if (!key.empty()) // in NDL macro definitions, we get called with cursor on the '='
             Insert(key, value);
-        }
 
         return tokenEnd;
     }
@@ -1047,8 +1051,8 @@ public:
         std::size_t end = 0;
         while (start != std::string::npos )
         {
-            // variable names must begin with a letter
-            if (start + 1 < newConfigLine.size() && !iscalpha(newConfigLine[start + 1]))
+            // variable names must begin with a letter or '_'
+            if (start + 1 < newConfigLine.size() && !iscalpha(newConfigLine[start + 1]) && newConfigLine[start + 1] != '_')
             {
                 start = newConfigLine.find_first_of(openBraceVar, start + 2);
                 continue;
@@ -1193,6 +1197,13 @@ public:
     }
 
     static std::string ParseCommandLine(int argc, wchar_t* argv[], ConfigParameters& config);
+
+    // support for BrainScriptNetworkBuilder: It needs the config directories in order to know where to include files from.
+    static vector<wstring>& GetBrainScriptNetworkBuilderIncludePaths()
+    {
+        static vector<wstring> allConfigDirs;
+        return allConfigDirs;
+    }
 
     // dump for debugging purposes
     void dump() const
@@ -1542,5 +1553,7 @@ public:
 
 typedef argvector<int> intargvector;
 typedef argvector<float> floatargvector;
+typedef argvector<double> doubleargvector;
 typedef argvector<std::wstring> stringargvector;
-} } }
+
+}}}

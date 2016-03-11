@@ -122,6 +122,7 @@ void BlockRandomizer::RandomizeChunks()
         while (chunk.m_info.m_samplePositionStart - m_randomizedChunks[chunk.m_windowBegin].m_info.m_samplePositionStart > halfWindowRange)
             chunk.m_windowBegin++; // too early
         // TODO m_randomizedChunks[chunk.windowend + 1].info.samplePositionStart - m_randomizedChunks[chunk.windowbegin].info.samplePositionStart < m_randomizationRangeInSamples
+        chunk.m_windowEnd = std::max(chunk.m_windowEnd, chunk.m_windowBegin + 1);
         while (chunk.m_windowEnd < m_numChunks &&
             m_randomizedChunks[chunk.m_windowEnd + 1].m_info.m_samplePositionStart - chunk.m_info.m_samplePositionStart < halfWindowRange)
             chunk.m_windowEnd++; // got more space
@@ -424,7 +425,7 @@ bool BlockRandomizer::GetNextSequenceIds(size_t sampleCount, std::vector<size_t>
                     const auto& seqDesc = m_randomTimeline[m_sequencePositionInSweep];
                     originalIds.push_back(seqDesc.m_id);
 
-                    const auto & currentChunk = m_randomizedChunks[GetChunkIndexForSequencePosition(seqDesc.m_id)];
+                    const auto & currentChunk = m_randomizedChunks[GetChunkIndexForSequencePosition(m_sequencePositionInSweep)];
                     const size_t windowBegin = currentChunk.m_windowBegin;
                     const size_t windowEnd = currentChunk.m_windowEnd;
 
