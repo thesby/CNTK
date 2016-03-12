@@ -418,8 +418,8 @@ private:
     {
         if (HasMBLayout())
             LogicError("%ls: Minibatch data cannot be interpreted as a single 2D tensor.", NodeDescription().c_str());
-        else if (m_sampleLayout.GetRank() < 1 || m_sampleLayout.GetRank() > 2) // note: scalars are not stored as tensors of rank 0, but rather as 1-dim vectors. TODO: clean this up some day
-            LogicError("%ls: Sample [%s] is not a column vector or matrix (1D or 2D tensor).", NodeDescription().c_str(), string(m_sampleLayout).c_str());
+        //else if (m_sampleLayout.GetRank() < 1 || m_sampleLayout.GetRank() > 2) // note: scalars are not stored as tensors of rank 0, but rather as 1-dim vectors. TODO: clean this up some day
+        //    LogicError("%ls %ls operation: Sample [%s] is not a column vector or matrix (1D or 2D tensor).", NodeName().c_str(), OperationName().c_str(), string(m_sampleLayout).c_str());
     }
 public:
     size_t GetAsMatrixNumRows() const
@@ -430,7 +430,14 @@ public:
     size_t GetAsMatrixNumCols() const
     {
         CheckTensorIsMatrix();
-        return m_sampleLayout.GetRank() > 1 ? m_sampleLayout[1] : 1; // a column vector is also a Matrix
+        if (m_sampleLayout.GetRank() <= 1)
+            return 1;
+        int total = 1;
+        for (int i = 1; i < m_sampleLayout.GetRank(); i++)
+            total *= m_sampleLayout[i];
+
+        return total;
+        //return m_sampleLayout.GetRank() > 1 ? m_sampleLayout[1] : 1; // a column vector is also a Matrix
     }
 
     // setting/updating the dimensions of the node
@@ -606,6 +613,7 @@ public:
         if (f < 0)
             InvalidArgument("%ls: LearningRateMultiplier should be non-negative. You are tring to set it to %f.", NodeDescription().c_str(), f);
         m_learningRateMultiplier = f; 
+        m_needsGradient = m_learningRateMultiplier > 0;
     }
     float GetLearningRateMultiplier() const { return m_learningRateMultiplier; }
     bool IsParameterUpdateRequired() const { return m_learningRateMultiplier > 0; }
@@ -922,7 +930,7 @@ public:
     {
         const std::wstring& name = (newName == L"") ? NodeName() : newName;
         ComputationNodeBasePtr node(NewThis(m_deviceId, name)); // NewThis() is a virtual function that creates a new node of the actual type of 'this'
-        node->CopyTo(shared_from_this(), newName, flags);       // note: shared_from_this() is the base class, but CopyTo() up-casts it as needed
+        shared_from_this()->CopyTo(node, newName, flags);       // note: shared_from_this() is the base class, but CopyTo() up-casts it as needed
         return node;
     }
 
