@@ -662,7 +662,7 @@ namespace Microsoft {
 			}
 
 			template<class ElemType>
-			void DenseReader<ElemType>::CheckDataMatrices(std::map<std::wstring, Matrix<ElemType>*>& matrices) {
+			void DenseReader<ElemType>::CheckDataMatrices(StreamMinibatchInputs& matrices) {
 				if (m_dataMatrices.empty())
 				{
 					for (auto inmat : matrices) {
@@ -696,7 +696,7 @@ namespace Microsoft {
 
 
 			template<class ElemType>
-			bool DenseReader<ElemType>::GetMinibatch(std::map<std::wstring, Matrix<ElemType>*>& matrices) {
+			bool DenseReader<ElemType>::GetMinibatch(StreamMinibatchInputs& matrices) {
 				//timer = clock();
 #if DEBUG
 				span minibatch_span(*reader_series, 1, L"Get Minibatch: %ld", cur_read);
@@ -732,21 +732,16 @@ namespace Microsoft {
 #if DEBUG
 					reader_series->write_flag(_T("starting fill."));
 #endif
-					for (auto matrix : m_dataMatrices) {
-						auto findMat = matrices.find(matrix.first);
-						if (findMat != matrices.end()) {
-							matrix.second->Fill(findMat->second);
-						}
-					}
+					for (auto matrix : m_dataMatrices) {						
+						if (matrices.HasInput(matrix.first))
+							matrix.second->Fill(&matrices.GetInputMatrix<ElemType>(matrix.first));
+					}					
 #if DEBUG
 					reader_series->write_flag(_T("done fill."));
 #endif
-					auto findMat = matrices.find(L"DSSMLabel");
-					if (findMat != matrices.end())
-					{
-						DoDSSMMatrix(*(findMat->second), actualMBSize);
-
-					}
+					if (matrices.HasInput((L"DSSMLabel")))
+						DoDSSMMatrix(matrices.GetInputMatrix<ElemType>(L"DSSMLabel"), actualMBSize);
+					
 					m_pendingAsyncGetMinibatch = std::async(std::launch::async, [this]()
 					{
 						//CheckDataMatrices(matrices);

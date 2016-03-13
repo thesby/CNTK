@@ -182,12 +182,10 @@ namespace Microsoft {
 				DenseBlockingQueue<void*> m_dataToConsume;
 			};
 
-			template<class ElemType>
-			class DenseReader : public IDataReader <ElemType>
+			template <class ElemType>
+			class DenseReader : public IDataReader
 			{
-			public:
-				using LabelType = typename IDataReader<ElemType>::LabelType;
-				using LabelIdType = typename IDataReader<ElemType>::LabelIdType;
+			public:				
 
 				virtual void Init(const ConfigParameters & config) override { InitFromConfig(config); }
 				virtual void Init(const ScriptableObjects::IConfigRecord & config) override { InitFromConfig(config); }
@@ -202,7 +200,7 @@ namespace Microsoft {
 
 				virtual void StartMinibatchLoop(size_t mbSize, size_t epoch, size_t requestedEpochSamples = requestDataSize);
 				virtual void StartDistributedMinibatchLoop(size_t mbSize, size_t epoch, size_t subsetNum, size_t numSubsets, size_t requestedEpochSamples) override;
-				virtual bool GetMinibatch(std::map<std::wstring, Matrix<ElemType>*>& matrices);
+				virtual bool GetMinibatch(StreamMinibatchInputs& matrices);
 
 				virtual bool SupportsDistributedMBRead() const override { return true; }
 
@@ -228,7 +226,7 @@ namespace Microsoft {
 				clock_t timer;
 				void DoDSSMMatrix(Matrix<ElemType>& mat, size_t actualMBSize);
 
-				void CheckDataMatrices(std::map<std::wstring, Matrix<ElemType>*>& matrices);
+				void CheckDataMatrices(StreamMinibatchInputs& matrices);
 				MBLayoutPtr m_pMBLayout;
 				ConfigParameters m_readerConfig;
 

@@ -15,20 +15,15 @@
 
 namespace Microsoft { namespace MSR { namespace CNTK {
 
-template<class ElemType>
-void DATAREADER_API GetReader(IDataReader<ElemType>** preader)
+extern "C" DATAREADER_API void GetReaderF(IDataReader** preader)
 {
-    *preader = new DenseReader<ElemType>();
+    *preader = new DenseReader<float>();
 }
 
-extern "C" DATAREADER_API void GetReaderF(IDataReader<float>** preader)
-{
-    GetReader(preader);
-}
-extern "C" DATAREADER_API void GetReaderD(IDataReader<double>** preader)
-{
-    GetReader(preader);
-}
 
+extern "C" DATAREADER_API void GetReaderD(IDataReader** preader)
+{
+	*preader = new DenseReader<double>();
+}
 
 }}}
