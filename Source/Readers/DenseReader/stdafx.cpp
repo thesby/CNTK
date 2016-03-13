@@ -1,5 +1,5 @@
 // stdafx.cpp : source file that includes just the standard includes
-// ParseNumber.pch will be the pre-compiled header
+// DSSMReader.pch will be the pre-compiled header
 // stdafx.obj will contain the pre-compiled type information
 
 #include "stdafx.h"
