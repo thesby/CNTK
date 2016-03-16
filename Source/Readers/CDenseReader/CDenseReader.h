@@ -98,33 +98,29 @@ namespace Microsoft {
 				void Init(std::map<std::wstring, std::wstring> rename, const ConfigRecordType & config);
 				void StartDistributedMinibatchLoop(size_t mbSize, size_t subsetNum, size_t numSubsets);
 				void ReadMinibatches(size_t* read_order, size_t numToRead);
-				size_t ReadMinibatch(void* data_buffer, std::map<std::wstring, shared_ptr<BDenseBinaryMatrix<ElemType>>>& matrices);
-				//void GetMinibatch(std::map<std::wstring, Matrix<ElemType>*>& matrices);
+				size_t ReadMinibatch(void* data_buffer, std::map<std::wstring, shared_ptr<BDenseBinaryMatrix<ElemType>>>& matrices);				
 				size_t FillMatrices(std::map<std::wstring, shared_ptr<BDenseBinaryMatrix<ElemType>>>& matrices);
 				size_t GetMBSize() { return m_mbSize; }
 				size_t GetNumMB() { return m_numBatches / (m_mbSize / m_microBatchSize); }
 				void Shuffle();
-				shared_ptr<BDenseBinaryMatrix<ElemType>> CreateMatrix(std::wstring matName, int deviceId);
-				//shared_ptr<BinaryMatrix<ElemType>> CreateMatrix(std::wstring matName);
+				shared_ptr<BDenseBinaryMatrix<ElemType>> CreateMatrix(std::wstring matName, int deviceId);				
 				virtual bool DataEnd();
 
 
-			private:
-				void ReadOffsets(size_t startMB, size_t numMBs);
-				void FillReadOrder(size_t windowSize);
-				void* GetTempDataPointer(size_t numVals);
+			private:				
+				void FillReadOrder(size_t windowSize);				
 				bool Randomize();
+				void GetZippedFileInfo();
+				void Unzip(void * input, void * output, int inputSize, int outputSize);
+				int32_t FillUnzipBuffer(void *bufferInProduce, size_t* read_order, size_t numToRead);
+				void CompactUnzipBuffer();
+				void ReadAndUnzip(int index, size_t* read_order);
+				void Print(void * buffer, int start, int end);
+				void ClearUnzipBufferStatus();
 
 				ifstream m_inFile;
 				std::wstring m_fileName;
-				size_t m_fileSize;
-
-				size_t m_offsetsStart;
-				int64_t* m_offsets;
-
-				int64_t* m_totalReadOffsets;
-
-				size_t m_dataStart;
+				size_t m_fileSize;				
 
 				size_t m_nextMB; // starting sample # of the next minibatch
 				size_t m_epochSize; // size of an epoch
@@ -136,15 +132,14 @@ namespace Microsoft {
 				int32_t m_microBatchSize;
 				size_t m_mbSize;
 
-				size_t m_startMB;
-				size_t m_endMB;
+				size_t m_startBlock;
+				size_t m_endBlock;
 				size_t m_curLower;
 
 				size_t m_subsetNum;
 				size_t m_numSubsets;
 
-				size_t m_windowSize;
-				size_t m_curWindowSize;
+				size_t m_windowSize;				
 
 				bool m_randomize;
 				size_t* m_readOrder; // array to shuffle to reorder the dataset
@@ -165,11 +160,21 @@ namespace Microsoft {
 				std::map<std::wstring, void*> m_mappedBuffer;
 				std::map<std::wstring, void*> m_mappedBufferForConsumption;
 
+				std::vector<size_t> m_blockSizeInByte;
+				std::vector<size_t> m_sampleCntInBlock;
+				std::vector<size_t> m_blockOffset;
+				size_t m_numBlocks;				
+				int32_t m_blockSampleCnt;
+				int32_t m_blockSize;
+				int32_t m_blockSizeOfUnzippedBuffer;
 
-
-				int32_t m_tempValuesSize;
-				void* m_tempValues;
-
+				void * m_unzippedBuffer;
+				void * m_zippedFileBlockBuffer;
+				size_t m_unzippedBufferLen;
+				size_t m_sampleCntInUnzippedBuffer;
+				size_t m_blockCntBeenRead;
+				long m_lastValidPosOfUnzippedBuffer;
+				long m_firstValidPosOfUnzippedBuffer;
 
 				RandomOrdering m_randomordering;   // randomizing class
 				std::mt19937_64 m_randomEngine;
