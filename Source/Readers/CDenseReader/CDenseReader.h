@@ -115,8 +115,12 @@ namespace Microsoft {
 				int32_t FillUnzipBuffer(void *bufferInProduce, size_t* read_order, size_t numToRead);
 				void CompactUnzipBuffer();
 				void ReadAndUnzip(int index, size_t* read_order);
+				void UnzipData(int threadIndex, size_t numToRead);
 				void Print(void * buffer, int start, int end);
 				void ClearUnzipBufferStatus();
+				int32_t Copy2Buffer(void *bufferInProduce, size_t numToRead);
+
+				void ReadZipData(size_t* read_order, size_t numToRead);
 
 				ifstream m_inFile;
 				std::wstring m_fileName;
@@ -172,10 +176,21 @@ namespace Microsoft {
 				void * m_zippedFileBlockBuffer;
 				size_t m_unzippedBufferLen;
 				size_t m_sampleCntInUnzippedBuffer;
-				size_t m_blockCntBeenRead;
+				size_t m_blockCntBeenRead;				
 				long m_lastValidPosOfUnzippedBuffer;
 				long m_firstValidPosOfUnzippedBuffer;
 
+				//muti-thread to decompress
+				int32_t m_dThreadCnt;
+				size_t * m_processedBlockCntPerThread;
+				size_t m_blockCntBeenCopied;
+				DenseBlockingQueue<void*> m_zipedDataToProduce; //read zip data to this queue
+				DenseBlockingQueue<void*> m_zipedDataToConsume; //read zip data to this queue
+				
+				DenseBlockingQueue<void*> m_unzipedDataToProduce; //read zip data to this queue
+				DenseBlockingQueue<void*> m_unzipedDataToConsume; //read zip data to this queue
+
+				
 				RandomOrdering m_randomordering;   // randomizing class
 				std::mt19937_64 m_randomEngine;
 #ifdef _WIN32

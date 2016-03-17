@@ -90,7 +90,8 @@ namespace Microsoft {
 
 			template<class ElemType>
 			DenseBinaryInput<ElemType>::DenseBinaryInput(std::wstring fileName) : m_fileName(fileName), m_readOrder(nullptr), m_readOrderLength(0), m_randomize(false),
-				m_unzippedBuffer(nullptr), m_zippedFileBlockBuffer(nullptr), m_startBlock(0), m_endBlock(0), m_unzippedBufferLen(0), m_sampleCntInUnzippedBuffer(0), m_lastValidPosOfUnzippedBuffer(-1), m_firstValidPosOfUnzippedBuffer(0), m_blockCntBeenRead(0){
+				m_unzippedBuffer(nullptr), m_zippedFileBlockBuffer(nullptr), m_startBlock(0), m_endBlock(0), m_unzippedBufferLen(0), m_sampleCntInUnzippedBuffer(0), m_lastValidPosOfUnzippedBuffer(-1), m_firstValidPosOfUnzippedBuffer(0), m_blockCntBeenRead(0),
+				m_processedBlockCntPerThread(nullptr), m_blockCntBeenCopied(0), m_dThreadCnt(0){
 				std::string name = msra::strfun::utf8(m_fileName);
 				m_inFile.open(name, ifstream::binary | ifstream::in);
 			}
@@ -106,12 +107,17 @@ namespace Microsoft {
 				
 				GetZippedFileInfo();
 				
+				m_dThreadCnt = config(L"dThreadCnt", (int32_t)3);
+				m_processedBlockCntPerThread = (size_t *)malloc(sizeof(size_t) * m_dThreadCnt);
+				for (int i = 0; i < m_dThreadCnt; i++)
+					m_processedBlockCntPerThread[i] = 0;
+
 				m_totalDim = config(L"totalDim", (int32_t)0);
 				m_microBatchSize = config(L"microBatchSize", (int32_t)(1024));
 				m_mbSize = (size_t)m_microBatchSize;
 				
 				m_blockSizeOfUnzippedBuffer = 4;
-				m_unzippedBufferLen = sizeof(int32_t) * m_blockSizeOfUnzippedBuffer * m_totalDim * m_blockSampleCnt;
+				m_unzippedBufferLen = sizeof(int32_t) * m_totalDim * m_blockSampleCnt * m_blockSizeOfUnzippedBuffer;
 				m_unzippedBuffer = malloc(m_unzippedBufferLen);
 
 				m_zippedFileBlockBuffer = malloc(m_blockSize);
@@ -239,9 +245,9 @@ namespace Microsoft {
 				m_subsetNum = subsetNum; //the index of this subset
 				m_numSubsets = numSubsets; // the total count of subset
 
-				int blockSize = m_blockOffset.size() / numSubsets;
-				size_t startBlock = blockSize * subsetNum;
-				size_t endBlock = blockSize * (subsetNum + 1);
+				int blockCnt = m_blockOffset.size() / numSubsets;
+				size_t startBlock = blockCnt * subsetNum;
+				size_t endBlock = blockCnt * (subsetNum + 1);
 				size_t remainder = m_numBatches % numSubsets;
 
 				size_t lb = min(remainder, subsetNum);
@@ -267,22 +273,45 @@ namespace Microsoft {
 				}
 
 				//Shuffle();
-				
-				size_t maxMem = (size_t)1024 * (size_t)1024 * (size_t)1024 * (size_t)2; // 2GB
-				size_t maxPointers = maxMem / m_microbatchFileSize;
+				size_t G1 = 1024 * 1024 * 1024;
+
+				size_t maxPointers = G1 / m_microbatchFileSize;
+				size_t zipQueueLen = G1 / m_blockSize;
+				size_t unzipQueueLen = G1 * 2 / (sizeof(int32_t) * m_totalDim * m_blockSampleCnt * 2);
 
 				if (!m_bQueueBufferAllocated){
-
 					for (size_t c = 0; c < maxPointers; c++) {
-						void* dataBuffer = malloc(m_microbatchFileSize + sizeof(int32_t)); //modified by weiren, to add a # of sample
+						void* dataBuffer = malloc(m_microbatchFileSize + sizeof(int32_t)); //sample cnt
 						m_dataToProduce.push(dataBuffer);
+					}
+
+					for (size_t c = 0; c < unzipQueueLen; c++) {
+						void* unzipDataBuffer = malloc((sizeof(int32_t) * m_totalDim * m_blockSampleCnt * 2)); //sample cnt
+						m_unzipedDataToProduce.push(unzipDataBuffer);
+					}
+
+					for (size_t c = 0; c < zipQueueLen; c++){
+						void* zipDataBuffer = malloc(m_blockSize);
+						m_zipedDataToProduce.push(zipDataBuffer);
 					}
 
 					m_bQueueBufferAllocated = true;
 				}
 
-				std::thread readData([this] { this->ReadMinibatches(m_readOrder, m_readOrderLength); });
-				readData.detach();
+				std::thread readZipData([this] { this->ReadZipData(m_readOrder, m_readOrderLength); });
+				readZipData.detach();
+				
+				std::thread unzipData0([this] { this->UnzipData(0, m_readOrderLength); });
+				unzipData0.detach();
+				
+				std::thread unzipData1([this] { this->UnzipData(1, m_readOrderLength); });
+				unzipData1.detach();
+
+				std::thread unzipData2([this] { this->UnzipData(2, m_readOrderLength); });
+				unzipData2.detach();
+
+				std::thread processData([this] { this->ReadMinibatches(m_readOrder, m_readOrderLength); });
+				processData.detach();
 
 			}
 
@@ -316,6 +345,11 @@ namespace Microsoft {
 				m_sampleCntInUnzippedBuffer = 0;
 				m_lastValidPosOfUnzippedBuffer = -1; 
 				m_firstValidPosOfUnzippedBuffer = 0;
+
+
+				m_blockCntBeenCopied = 0;				
+				for (int i = 0; i < m_dThreadCnt; i++)
+					m_processedBlockCntPerThread[i] = 0;
 			}
 
 			template<class ElemType>
@@ -373,6 +407,53 @@ namespace Microsoft {
 			}
 			
 			template<class ElemType>
+			void DenseBinaryInput<ElemType>::UnzipData(int threadIndex, size_t numToRead){
+				
+				while (true){
+					size_t processedBlockCnt = 0;
+					for (int i = 0; i < m_dThreadCnt; i++)
+						processedBlockCnt += m_processedBlockCntPerThread[i];
+					if (processedBlockCnt >= numToRead)
+						return;
+					
+					m_processedBlockCntPerThread[threadIndex]++;
+					
+					void * zipData = m_zipedDataToConsume.pop();
+					void * unzipData = m_unzipedDataToProduce.pop();
+
+					int zipBytesCnt = 0;
+					int sampleCnt = 0;
+					memcpy(&zipBytesCnt, zipData, 4);
+					memcpy(&sampleCnt, (char *)zipData + 4, 4);
+					int unzipBytesCnt = sampleCnt * m_totalDim * 4;
+					Unzip((char *)zipData + 8, (char *)unzipData + 4, zipBytesCnt, unzipBytesCnt * 2);
+
+					memcpy(unzipData, &sampleCnt, 4);
+
+					m_unzipedDataToConsume.push(unzipData);
+
+					//printf("\nunzip data %d\n", threadIndex);
+					//Print((char *)unzipData + 4, 0, sampleCnt * m_totalDim * 4);
+				}
+			}
+
+			template<class ElemType>
+			void DenseBinaryInput<ElemType>::ReadZipData(size_t* read_order, size_t numToRead)
+			{
+				for (int i = 0; i < numToRead; i++){
+					size_t readSize = m_blockSizeInByte[read_order[i]];					
+					m_inFile.seekg(m_blockOffset[read_order[i]], ios::beg);
+
+					void * zipDataBuffer = m_zipedDataToProduce.pop();
+
+					m_inFile.read((char*)zipDataBuffer, readSize);
+
+					m_zipedDataToConsume.push(zipDataBuffer);
+					m_blockCntBeenRead++;
+				}
+			}
+
+			template<class ElemType>
 			int32_t DenseBinaryInput<ElemType>::FillUnzipBuffer(void *bufferInProduce, size_t* read_order, size_t numToRead){
 
 				if (m_sampleCntInUnzippedBuffer <= 0 && m_blockCntBeenRead >= numToRead)
@@ -397,20 +478,53 @@ namespace Microsoft {
 
 				return sampleCntToBeCopied;
 			}
+			
+			template<class ElemType>
+			int32_t DenseBinaryInput<ElemType>::Copy2Buffer(void *bufferInProduce, size_t numToRead){
+				
+				//first, fill the source buffer
+				while (m_sampleCntInUnzippedBuffer < m_microBatchSize && m_blockCntBeenCopied < numToRead){
+					CompactUnzipBuffer();
+
+					void * unzipBuffer = m_unzipedDataToConsume.pop();
+					int sampleCnt = 0;
+					memcpy(&sampleCnt, unzipBuffer, 4);
+					int byteCnt = sampleCnt * m_totalDim * sizeof(int32_t);					
+					memcpy((char *)m_unzippedBuffer + m_lastValidPosOfUnzippedBuffer + 1, (char *)unzipBuffer + 4, byteCnt);
+					
+					m_sampleCntInUnzippedBuffer += sampleCnt;
+					m_lastValidPosOfUnzippedBuffer += byteCnt;
+					
+					m_blockCntBeenCopied++;
+				}
+
+				int sizeToBeCopied = m_microBatchSize * m_totalDim * 4;
+				int32_t sampleCntToBeCopied = m_microBatchSize;
+				if (m_sampleCntInUnzippedBuffer < m_microBatchSize){
+					sizeToBeCopied = m_sampleCntInUnzippedBuffer * m_totalDim * 4;
+					sampleCntToBeCopied = m_sampleCntInUnzippedBuffer;
+				}
+
+				memcpy(bufferInProduce, (char *)m_unzippedBuffer + m_firstValidPosOfUnzippedBuffer, sizeToBeCopied);
+
+				m_firstValidPosOfUnzippedBuffer += sizeToBeCopied;
+				m_sampleCntInUnzippedBuffer -= sampleCntToBeCopied;
+
+				return sampleCntToBeCopied;
+			}
 
 			template<class ElemType>
 			void DenseBinaryInput<ElemType>::ReadMinibatches(size_t* read_order, size_t numToRead) {
 				
 				do{
-
-					if (m_sampleCntInUnzippedBuffer <= 0 && m_blockCntBeenRead >= numToRead){
+					if (m_sampleCntInUnzippedBuffer <= 0 && m_blockCntBeenCopied >= numToRead){
 						ClearUnzipBufferStatus();
 						break;
 					}
 					
 					void* data_buffer = m_dataToProduce.pop();
-					int32_t sampleNumber = FillUnzipBuffer((char *)data_buffer + 4, read_order, numToRead);
-					memcpy(data_buffer, &sampleNumber, 4);
+					int32_t sampleNumber = Copy2Buffer((char *)data_buffer + 4, numToRead);
+					memcpy(data_buffer, &sampleNumber, 4);					
 																			
 
 					for (int32_t c = 0; c < m_labels.size(); c++)
@@ -439,7 +553,7 @@ namespace Microsoft {
 
 					}			
 
-					//printf("ReArrange data buffer\n");
+					//printf("\nReArrange data buffer\n");
 					//Print((char *)data_buffer + 4, 0, sampleNumber * m_totalDim * 4);
 
 					m_dataToConsume.push(data_buffer);					
