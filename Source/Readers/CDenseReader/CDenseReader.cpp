@@ -107,7 +107,7 @@ namespace Microsoft {
 				
 				GetZippedFileInfo();
 				
-				m_dThreadCnt = config(L"dThreadCnt", (int32_t)3);
+				m_dThreadCnt = config(L"dThreadCnt", (int32_t)6);
 				m_processedBlockCntPerThread = (size_t *)malloc(sizeof(size_t) * m_dThreadCnt);
 				for (int i = 0; i < m_dThreadCnt; i++)
 					m_processedBlockCntPerThread[i] = 0;
@@ -276,7 +276,7 @@ namespace Microsoft {
 				size_t G1 = 1024 * 1024 * 1024;
 
 				size_t maxPointers = G1 / m_microbatchFileSize;
-				size_t zipQueueLen = G1 / m_blockSize;
+				size_t zipQueueLen = G1 * 1 / m_blockSize;
 				size_t unzipQueueLen = G1 * 2 / (sizeof(int32_t) * m_totalDim * m_blockSampleCnt * 2);
 
 				if (!m_bQueueBufferAllocated){
@@ -309,6 +309,15 @@ namespace Microsoft {
 
 				std::thread unzipData2([this] { this->UnzipData(2, m_readOrderLength); });
 				unzipData2.detach();
+
+				std::thread unzipData3([this] { this->UnzipData(3, m_readOrderLength); });
+				unzipData3.detach();
+
+				std::thread unzipData4([this] { this->UnzipData(4, m_readOrderLength); });
+				unzipData4.detach();
+
+				std::thread unzipData5([this] { this->UnzipData(5, m_readOrderLength); });
+				unzipData5.detach();
 
 				std::thread processData([this] { this->ReadMinibatches(m_readOrder, m_readOrderLength); });
 				processData.detach();
