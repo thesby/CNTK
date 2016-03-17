@@ -103,7 +103,7 @@
     <ClInclude Include="..\..\Common\Include\File.h" />
     <ClInclude Include="..\..\Common\Include\fileutil.h" />
     <ClInclude Include="..\..\Common\Include\RandomOrdering.h" />
-    <ClInclude Include="CDensereader.h" />
+    <ClInclude Include="CDenseReader.h" />
     <ClInclude Include="crc32.h" />
     <ClInclude Include="deflate.h" />
     <ClInclude Include="gzguts.h" />
@@ -141,6 +141,7 @@
       <PrecompiledHeader Condition="$(ReleaseBuild)">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="adler32.c" />
+    <ClCompile Include="CDenseReader.cpp" />
     <ClCompile Include="compress.c" />
     <ClCompile Include="crc32.c" />
     <ClCompile Include="deflate.c" />
@@ -148,9 +149,6 @@
       <PrecompiledHeader Condition="$(DebugBuild)">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Exports.cpp">
-      <PrecompiledHeader Condition="$(DebugBuild)">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="CDensereader.cpp">
       <PrecompiledHeader Condition="$(DebugBuild)">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="gzclose.c" />

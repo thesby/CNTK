@@ -11,7 +11,7 @@
 #include "DataReader.h"
 #define DATAWRITER_EXPORTS
 #include "DataWriter.h"
-#include "CDensereader.h"
+#include "CDenseReader.h"
 
 namespace Microsoft { namespace MSR { namespace CNTK {
 

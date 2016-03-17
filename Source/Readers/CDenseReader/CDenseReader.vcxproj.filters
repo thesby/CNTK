@@ -30,7 +30,6 @@
     </ClCompile>
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="Exports.cpp" />
-    <ClCompile Include="CDensereader.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="..\..\Common\Config.cpp" />
     <ClCompile Include="..\..\Common\ExceptionWithCallStack.cpp">
@@ -81,6 +80,7 @@
     <ClCompile Include="zutil.c">
       <Filter>Zlib</Filter>
     </ClCompile>
+    <ClCompile Include="CDenseReader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Common\Include\DataReader.h">
@@ -95,7 +95,6 @@
     <ClInclude Include="..\..\Common\Include\fileutil.h">
       <Filter>Common\Include</Filter>
     </ClInclude>
-    <ClInclude Include="CDensereader.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="..\..\Common\Include\RandomOrdering.h">
@@ -134,5 +133,6 @@
     <ClInclude Include="zutil.h">
       <Filter>Zlib</Filter>
     </ClInclude>
+    <ClInclude Include="CDenseReader.h" />
   </ItemGroup>
 </Project>

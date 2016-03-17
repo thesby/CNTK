@@ -9,7 +9,7 @@
 #include "stdafx.h"
 #define DATAREADER_EXPORTS  // creating the exports here
 #include "DataReader.h"
-#include "CDensereader.h"
+#include "CDenseReader.h"
 #include "fileutil.h"   // for fexists()
 #include <random>
 #include <map>
