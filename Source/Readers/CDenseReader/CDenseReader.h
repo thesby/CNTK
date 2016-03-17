@@ -111,10 +111,8 @@ namespace Microsoft {
 				void FillReadOrder(size_t windowSize);				
 				bool Randomize();
 				void GetZippedFileInfo();
-				void Unzip(void * input, void * output, int inputSize, int outputSize);
-				int32_t FillUnzipBuffer(void *bufferInProduce, size_t* read_order, size_t numToRead);
-				void CompactUnzipBuffer();
-				void ReadAndUnzip(int index, size_t* read_order);
+				void Unzip(void * input, void * output, int inputSize, int outputSize);				
+				void CompactUnzipBuffer();				
 				void UnzipData(int threadIndex, size_t numToRead);
 				void Print(void * buffer, int start, int end);
 				void ClearUnzipBufferStatus();
@@ -184,6 +182,7 @@ namespace Microsoft {
 				int32_t m_dThreadCnt;
 				size_t * m_processedBlockCntPerThread;
 				size_t m_blockCntBeenCopied;
+				size_t m_batchCntBeenCopied;
 				DenseBlockingQueue<void*> m_zipedDataToProduce; //read zip data to this queue
 				DenseBlockingQueue<void*> m_zipedDataToConsume; //read zip data to this queue
 				
