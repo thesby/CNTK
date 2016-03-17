@@ -300,7 +300,7 @@ namespace Microsoft {
 
 				std::thread readZipData([this] { this->ReadZipData(m_readOrder, m_readOrderLength); });
 				readZipData.detach();
-				
+				/*
 				std::thread unzipData0([this] { this->UnzipData(0, m_readOrderLength); });
 				unzipData0.detach();
 				
@@ -318,6 +318,11 @@ namespace Microsoft {
 
 				std::thread unzipData5([this] { this->UnzipData(5, m_readOrderLength); });
 				unzipData5.detach();
+                */
+                for(m_dIndex = 0; m_dIndex < m_dThreadCnt; m_dIndex++){
+                    m_unzipThreads[m_dIndex] = std::thread([this] { this->UnzipData(m_dIndex, m_readOrderLength); });
+                    m_unzipThreads[m_dIndex].detach();                                    
+                }
 
 				std::thread processData([this] { this->ReadMinibatches(m_readOrder, m_readOrderLength); });
 				processData.detach();

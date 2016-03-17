@@ -180,6 +180,8 @@ namespace Microsoft {
 
 				//muti-thread to decompress
 				int32_t m_dThreadCnt;
+                int32_t m_dIndex;
+                std::thread m_unzipThreads[100];
 				size_t * m_processedBlockCntPerThread;
 				size_t m_blockCntBeenCopied;
 				size_t m_batchCntBeenCopied;
