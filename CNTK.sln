@@ -870,6 +870,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AlexNet", "AlexNet", "{2B10
 		Tests\EndToEndTests\Image\AlexNet\val_map.txt = Tests\EndToEndTests\Image\AlexNet\val_map.txt
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Benchmarks", "Benchmarks", "{FFD57768-C3FC-4A6F-82F4-836D2CB6F9E1}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TextReadersPerfComparison", "Tests\Benchmarks\TextReadersPerfComparison\TextReadersPerfComparison.vcxproj", "{BE18D481-0AE4-43C5-B84A-33D2803C21AD}"
+	ProjectSection(ProjectDependencies) = postProject
+		{91973E60-A7BE-4C86-8FDB-59C88A0B3715} = {91973E60-A7BE-4C86-8FDB-59C88A0B3715}
+		{E6646FFE-3588-4276-8A15-8D65C22711C1} = {E6646FFE-3588-4276-8A15-8D65C22711C1}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_CpuOnly|x64 = Debug_CpuOnly|x64
@@ -1084,6 +1092,12 @@ Global
 		{9BD0A711-0BBD-45B6-B81C-053F03C26CFB}.Release_CpuOnly|x64.Build.0 = Release_CpuOnly|x64
 		{9BD0A711-0BBD-45B6-B81C-053F03C26CFB}.Release|x64.ActiveCfg = Release|x64
 		{9BD0A711-0BBD-45B6-B81C-053F03C26CFB}.Release|x64.Build.0 = Release|x64
+		{BE18D481-0AE4-43C5-B84A-33D2803C21AD}.Debug_CpuOnly|x64.ActiveCfg = Debug_CpuOnly|x64
+		{BE18D481-0AE4-43C5-B84A-33D2803C21AD}.Debug_CpuOnly|x64.Build.0 = Debug_CpuOnly|x64
+		{BE18D481-0AE4-43C5-B84A-33D2803C21AD}.Debug|x64.ActiveCfg = Debug_CpuOnly|x64
+		{BE18D481-0AE4-43C5-B84A-33D2803C21AD}.Release_CpuOnly|x64.ActiveCfg = Release_CpuOnly|x64
+		{BE18D481-0AE4-43C5-B84A-33D2803C21AD}.Release_CpuOnly|x64.Build.0 = Release_CpuOnly|x64
+		{BE18D481-0AE4-43C5-B84A-33D2803C21AD}.Release|x64.ActiveCfg = Release_CpuOnly|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1199,5 +1213,7 @@ Global
 		{7B7A51ED-AA8E-4660-A805-D50235A02120} = {33EBFE78-A1A8-4961-8938-92A271941F94}
 		{9BD0A711-0BBD-45B6-B81C-053F03C26CFB} = {33EBFE78-A1A8-4961-8938-92A271941F94}
 		{2B1046A1-0140-43B7-B3DC-CF7DEEE1009E} = {8071EF60-30F7-4A77-81AA-ADCA0E18B1E3}
+		{FFD57768-C3FC-4A6F-82F4-836D2CB6F9E1} = {D45DF403-6781-444E-B654-A96868C5BE68}
+		{BE18D481-0AE4-43C5-B84A-33D2803C21AD} = {FFD57768-C3FC-4A6F-82F4-836D2CB6F9E1}
 	EndGlobalSection
 EndGlobal
