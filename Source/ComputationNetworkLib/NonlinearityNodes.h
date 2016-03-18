@@ -27,7 +27,14 @@ namespace Microsoft { namespace MSR { namespace CNTK {
 // only inputs (but not // function values) are used.
 // -----------------------------------------------------------------------
 
-template <class ElemType, ElementWiseOperator opForward, ElementWiseOperator opBackward, bool gradientFromOutput>
+enum GradientOperationType
+{
+    UnaryGradient,
+    BinaryWithInputGradient,
+    BinaryWithOutputGradient
+};
+
+template <class ElemType, ElementWiseOperator opForward, ElementWiseOperator opBackward, GradientOperationType opType>
 class UnaryElementWiseWithOpCodeNodeBase : public ComputationNode<ElemType>, public NumInputs<1>
 {
     typedef ComputationNode<ElemType> Base;
@@ -56,11 +63,24 @@ public:
         size_t rank = DetermineElementwiseTensorRank();
         auto sliceOutputGrad = GradientTensorFor(rank, fr);               // propagate from this one...
         auto sliceInputGrad = Input(0)->GradientTensorFor(rank, fr);      // ...to this one
-        auto sliceValue = gradientFromOutput ? ValueTensorFor(rank, fr) : // using input or output value
-                              Input(0)->ValueTensorFor(rank, fr);
-        // If gradient can be compute from output rather than input, then that's better for mem sharing (and faster in most cases).
-        // Not possible for Cos().
-        sliceInputGrad.DoBinaryOpOf(1, sliceOutputGrad, sliceValue, 1, opBackward);
+
+        // we expect a constant conditional expression here -- suppress the warning that leads to an error
+        // TODO: alternative: assign to a non-const variable and test that.
+#pragma warning( push )
+#pragma warning( disable : 4127 )
+        if (opType == UnaryGradient)
+        {
+            sliceInputGrad.DoUnaryOpOf(1, sliceOutputGrad, 1, opBackward);
+        }
+        else
+        {
+            // If gradient can be compute from output rather than input, then that's better for mem sharing (and faster in most cases).
+            // Not possible for Cos().
+            auto sliceValue = (opType == BinaryWithOutputGradient) ? ValueTensorFor(rank, fr) : // using input or output value
+                Input(0)->ValueTensorFor(rank, fr);
+            sliceInputGrad.DoBinaryOpOf(1, sliceOutputGrad, sliceValue, 1, opBackward);
+        }
+#pragma warning( pop )
     }
 
     virtual void /*ComputationNodeBase::*/ Validate(bool isFinalValidationPass) override
@@ -70,11 +90,11 @@ public:
 
     virtual bool OutputUsedInComputingInputNodesGradients() const override
     {
-        return gradientFromOutput;
+        return opType == BinaryWithOutputGradient;
     }
     virtual bool InputUsedInComputingInputNodesGradients(size_t /*childIndex*/) const override
     {
-        return !gradientFromOutput;
+        return opType == BinaryWithInputGradient;
     }
 };
 
@@ -110,14 +130,14 @@ public:
         }                                                                                                                 \
     }
 
-//                                    Name             Forward and      Backward opcodes                           Gradient from output?
-DeclareUnaryElementWiseWithOpCodeNode(Sigmoid,         Sigmoid,         ElementwiseProductWithSigmoidDerivativeFromOutput,         true);
-DeclareUnaryElementWiseWithOpCodeNode(Tanh,            Tanh,            ElementwiseProductWithTanhDerivativeFromOutput,            true);
-DeclareUnaryElementWiseWithOpCodeNode(RectifiedLinear, LinearRectifier, ElementwiseProductWithLinearRectifierDerivativeFromOutput, true);
-DeclareUnaryElementWiseWithOpCodeNode(Log,             Log,             ElementwiseProductWithLogDerivativeFromOutput,             true);
-DeclareUnaryElementWiseWithOpCodeNode(Exp,             Exp,             ElementwiseProduct,                                        true);
-DeclareUnaryElementWiseWithOpCodeNode(Cosine,          Cosine,          ElementwiseProductWithCosDerivative,                       false);
-DeclareUnaryElementWiseWithOpCodeNode(Identity,        Copy,            ConstOne,                                                  true);
+//                                    Name             Forward and      Backward opcodes                                           Gradient optype
+DeclareUnaryElementWiseWithOpCodeNode(Sigmoid,         Sigmoid,         ElementwiseProductWithSigmoidDerivativeFromOutput,         BinaryWithOutputGradient);
+DeclareUnaryElementWiseWithOpCodeNode(Tanh,            Tanh,            ElementwiseProductWithTanhDerivativeFromOutput,            BinaryWithOutputGradient);
+DeclareUnaryElementWiseWithOpCodeNode(RectifiedLinear, LinearRectifier, ElementwiseProductWithLinearRectifierDerivativeFromOutput, BinaryWithOutputGradient);
+DeclareUnaryElementWiseWithOpCodeNode(Log,             Log,             ElementwiseProductWithLogDerivativeFromOutput,             BinaryWithOutputGradient);
+DeclareUnaryElementWiseWithOpCodeNode(Exp,             Exp,             ElementwiseProduct,                                        BinaryWithOutputGradient);
+DeclareUnaryElementWiseWithOpCodeNode(Cosine,          Cosine,          ElementwiseProductWithCosDerivative,                       BinaryWithInputGradient);
+DeclareUnaryElementWiseWithOpCodeNode(Identity,        Copy,            Copy,                                                      UnaryGradient);
 
 #pragma pop_macro("DeclareUnaryElementWiseWithOpCodeNode")
 
