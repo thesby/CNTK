@@ -108,7 +108,7 @@ namespace Microsoft {
 
 
 			private:				
-				void FillReadOrder(size_t windowSize);				
+				void FillReadOrder();
 				bool Randomize();
 				void GetZippedFileInfo();
 				void Unzip(void * input, void * output, int inputSize, int outputSize);				
@@ -116,6 +116,7 @@ namespace Microsoft {
 				void UnzipData(int threadIndex, size_t numToRead);
 				void Print(void * buffer, int start, int end);
 				void ClearUnzipBufferStatus();
+				int GetMinimumEpochSizeCrossAllWorker(size_t mbSize, size_t subsetNum, size_t numSubsets);
 				int32_t Copy2Buffer(void *bufferInProduce, size_t numToRead);
 
 				void ReadZipData(size_t* read_order, size_t numToRead);
@@ -133,15 +134,9 @@ namespace Microsoft {
 
 				int32_t m_microBatchSize;
 				size_t m_mbSize;
-
+			
+				size_t m_windowSize;
 				size_t m_startBlock;
-				size_t m_endBlock;
-				size_t m_curLower;
-
-				size_t m_subsetNum;
-				size_t m_numSubsets;
-
-				size_t m_windowSize;				
 
 				bool m_randomize;
 				size_t* m_readOrder; // array to shuffle to reorder the dataset
@@ -179,9 +174,10 @@ namespace Microsoft {
 				long m_firstValidPosOfUnzippedBuffer;
 
 				//muti-thread to decompress
+				std::mutex m_unzipLocker;
+				size_t m_processedBlockCnt;
 				int32_t m_dThreadCnt;
-				int32_t m_dIndex;
-				size_t * m_processedBlockCntPerThread;
+				int32_t m_dIndex;				
 				size_t m_blockCntBeenCopied;
 				size_t m_batchCntBeenCopied;
 				std::thread m_unzipThreads[20];
