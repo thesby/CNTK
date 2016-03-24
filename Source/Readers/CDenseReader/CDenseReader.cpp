@@ -266,7 +266,7 @@ namespace Microsoft {
 				}
 				
 				for (int i = 0; i < numSubsets; i++){					
-					fprintf(stderr, "iEpochSize %d, minEpochSize %d, startBlock %d, windowSize %d, subsetNum %d, numSubsets %d\n", tmpEpochSize[i], minEpochSize, m_startBlock, m_windowSize, subsetNum, numSubsets);
+					fprintf(stderr, "iEpochSize %d, minEpochSize %zu, startBlock %zu, windowSize %zu, subsetNum %zu, numSubsets %zu\n", tmpEpochSize[i], minEpochSize, m_startBlock, m_windowSize, subsetNum, numSubsets);
 				}
 
 				delete tmpEpochSize;
