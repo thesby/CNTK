@@ -69,6 +69,10 @@ private:
     // We do no allocate data for all input sequences, only returning a pointer to existing category.
     std::vector<SparseSequenceDataPtr> m_categories;
 
+    // Weak pointer to the chunk (there's just one for this deserializer).
+    // If randomizer asks for the chunk, we do not need to recreate it.
+    std::weak_ptr<Chunk> m_weakChunk;
+
     // Flag that indicates whether a single speech frames should be exposed as a sequence.
     bool m_frameMode;
 };

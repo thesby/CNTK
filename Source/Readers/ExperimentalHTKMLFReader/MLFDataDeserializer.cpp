@@ -222,8 +222,15 @@ ChunkPtr MLFDataDeserializer::GetChunk(size_t chunkId)
 {
     UNUSED(chunkId);
     assert(chunkId == 0);
-    return std::make_shared<MLFChunk>(this);
-}
+    if (!m_weakChunk.expired())
+    {
+        return m_weakChunk.lock();
+    }
+
+    auto chunk = make_shared<MLFChunk>(this);
+    m_weakChunk = chunk;
+    return chunk;
+};
 
 // Sparse labels for an utterance.
 template <class ElemType>
